@@ -24,15 +24,17 @@ public class SendReceive {
 		}
 		
 		final Frame frame = new Frame();
-		final MulticastSender mcSend = new MulticastSender(mcAddress, mcPort, frame);
+		final MessageQueue queue = new MessageQueue(512);
+		final MulticastSender mcSend = new MulticastSender(mcAddress, mcPort, frame, queue);
 		final MulticastReceiver mcListen = new MulticastReceiver(mcAddress, mcPort, frame);
 		final UDP_Sender udpSend = new UDP_Sender(udpSenderPort);
 		final UDP_Receiver udpListen = new UDP_Receiver(udpListenerPort);
 		
+		
 		udpListen.setListenEvent(new ListenEvent() {
 			@Override
 			public void listen(byte[] msg) {
-				mcSend.send(msg);
+				queue.offer(msg);
 			}
 		});
 		
@@ -45,6 +47,7 @@ public class SendReceive {
 		
 		mcListen.start();
 		udpListen.start();
+		mcSend.start();
 		
 		try {
 			Thread.sleep(333);
@@ -52,7 +55,6 @@ public class SendReceive {
 			e.printStackTrace();
 		}
 		
-		mcSend.send(("22-X"+" --> "+"beliebiger Text").getBytes());
 	}
 	
 }

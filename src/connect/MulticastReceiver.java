@@ -14,6 +14,8 @@ public class MulticastReceiver extends Thread{
 	private int port;
 	private ByteBuffer buffer33 = ByteBuffer.allocate(33);
 	private Frame frame;
+	private MulticastSocket socket;
+	private InetAddress group;
 	
 	public MulticastReceiver(String iAddr, int port, Frame frame) {
 		this.iAddr = iAddr;
@@ -27,7 +29,40 @@ public class MulticastReceiver extends Thread{
 	
 	@Override
 	public void run() {
-		MulticastSocket socket;
+		connect();
+
+		try{
+			while(!interrupted()) {
+			    receivePacket();
+			}
+		}catch (IOException e) {
+			System.err.println("Receive Error!");
+		}
+		
+		disconnect();
+	}
+	
+	private void receivePacket() throws IOException {
+		byte[] buf = new byte[33];
+		DatagramPacket packet = new DatagramPacket(buf, buf.length);
+	    socket.receive(packet);
+
+	    byte[] packetData = packet.getData();
+	    String received = new String(packetData);
+	    
+	    buffer33.position(0);
+	    buffer33.put(packetData);
+	    
+	    buffer33.position(24);
+	    byte nextSlot = buffer33.get();
+	    frame.reserveSlot(nextSlot);
+	    
+	    System.out.println("MulticastReceiver: " + received + " --> "+frame.actualSlot()+" nextIs "+nextSlot);
+	    
+	    listenEvent.listen(packetData);
+	}
+
+	private void connect(){
 		try {
 			socket = new MulticastSocket(port);
 		} catch (IOException e) {
@@ -35,7 +70,6 @@ public class MulticastReceiver extends Thread{
 			return;
 		}
 		
-		InetAddress group;
 		try {
 			group = InetAddress.getByName(iAddr);
 			socket.joinGroup(group);
@@ -48,33 +82,15 @@ public class MulticastReceiver extends Thread{
 			socket.close();
 			return;
 		}
-		
-
-		try{
-			DatagramPacket packet;
-			while(!interrupted()) {
-			    byte[] buf = new byte[33];
-			    packet = new DatagramPacket(buf, buf.length);
-			    socket.receive(packet);
+	}
 	
-			    byte[] packetData = packet.getData();
-			    String received = new String(packetData);
-			    System.out.println("MulticastReceiver: " + received);
-			    
-			    buffer33.position(0);
-			    buffer33.put(packetData);
-			    
-			    buffer33.position(23);
-			    frame.setBlockAndTime(buffer33.get(), buffer33.getLong());
-			    
-			    listenEvent.listen(packetData);
-			}
+	private void disconnect(){
+		try {
 			socket.leaveGroup(group);
-		}catch (IOException e) {
-			System.err.println("Receive Error!");
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-		
-		socket.close();
 	}
 
 }
