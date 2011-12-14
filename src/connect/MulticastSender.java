@@ -17,6 +17,7 @@ public class MulticastSender extends Thread {
 	private ByteBuffer buffer33 = ByteBuffer.allocate(33);
 	private Frame frame;
 	private MessageQueue queue;
+	private volatile boolean collision;
 
 	public MulticastSender(String iAddr, int port, Frame frame, MessageQueue queue) {
 		this.iAddr = iAddr;
@@ -47,16 +48,22 @@ public class MulticastSender extends Thread {
 			frame.waitForSlot(slot);
 			
 			byte nextSlot;
-			while((nextSlot = send(queue.poll())) != -1 && !queue.isEmpty() && !interrupted()){
+			while((nextSlot = send(queue.poll())) != -1 && !collision && !queue.isEmpty() && !interrupted()){
 				System.out.println("NextSlot[init="+slot+"]:: "+nextSlot);
 				frame.waitForNextSlot(nextSlot);
 			}
+			collision = false;
 			System.out.println("MulticastSender[initSlot="+slot+"] --nextSlot-> "+nextSlot);
 		}
 		System.out.println("---------------there-are-no-messages-in-the-queue--------------");
 	}
 
+	public void tellCollision(){
+		collision = true;
+	}
+	
 	public byte send(byte[] bytes) {
+		if(bytes == null) return -1;
 		
 		if(bytes.length != 24){
 			System.err.println("MsgLen != 24");

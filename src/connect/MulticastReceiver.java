@@ -32,8 +32,22 @@ public class MulticastReceiver extends Thread{
 		connect();
 
 		try{
+			byte slotOld = -1;
+			long timeOld = -1;
+			byte slotActual = -1;
+			long timeActual = -1;
+			
 			while(!interrupted()) {
-			    receivePacket();
+			    slotActual = receivePacket();
+			    timeActual = System.currentTimeMillis();
+			    
+			    if(slotOld == slotActual && timeOld+100 >= timeActual){
+			    	//collision detection
+			    	System.out.println("COLLISION - Slot: "+slotActual);
+			    }
+			    
+			    slotOld = slotActual;
+			    timeOld = timeActual;
 			}
 		}catch (IOException e) {
 			System.err.println("Receive Error!");
@@ -42,7 +56,7 @@ public class MulticastReceiver extends Thread{
 		disconnect();
 	}
 	
-	private void receivePacket() throws IOException {
+	private byte receivePacket() throws IOException {
 		byte[] buf = new byte[33];
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
 	    socket.receive(packet);
@@ -60,6 +74,8 @@ public class MulticastReceiver extends Thread{
 	    System.out.println("MulticastReceiver: " + received + " --> "+frame.actualSlot()+" nextIs "+nextSlot);
 	    
 	    listenEvent.listen(packetData);
+	    
+	    return frame.actualSlot();
 	}
 
 	private void connect(){

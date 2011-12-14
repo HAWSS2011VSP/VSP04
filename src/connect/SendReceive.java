@@ -30,6 +30,8 @@ public class SendReceive {
 		final UDP_Sender udpSend = new UDP_Sender(udpSenderPort);
 		final UDP_Receiver udpListen = new UDP_Receiver(udpListenerPort);
 		
+		final MulticastSender mcSend2 = new MulticastSender(mcAddress, mcPort, frame, queue);
+		final MulticastSender mcSend3 = new MulticastSender(mcAddress, mcPort, frame, queue);
 		
 		udpListen.setListenEvent(new ListenEvent() {
 			@Override
@@ -48,6 +50,9 @@ public class SendReceive {
 		mcListen.start();
 		udpListen.start();
 		mcSend.start();
+		
+		mcSend2.start();
+		mcSend3.start();
 		
 		try {
 			Thread.sleep(333);
